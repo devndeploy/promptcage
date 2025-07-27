@@ -21,8 +21,8 @@ npm install promptcage
 ```ts
 import { myPackage } from 'promptcage';
 
-myPackage('hello');
-//=> 'hello from my package'
+myPackage('hello world');
+//=> 'hello world from my package'
 ```
 
 ## API
