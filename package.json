@@ -46,8 +46,8 @@
   },
   "homepage": "https://github.com/devndeploy/promptcage#readme",
   "devDependencies": {
-    "@devndeploy/commitizen": "^4.2.8",
-    "@devndeploy/cz-conventional-changelog": "^3.3.4",
+    "@ryansonshine/commitizen": "^4.2.8",
+    "@ryansonshine/cz-conventional-changelog": "^3.3.4",
     "@types/jest": "^27.5.2",
     "@types/node": "^12.20.11",
     "@typescript-eslint/eslint-plugin": "^4.22.0",
@@ -68,7 +68,7 @@
   },
   "config": {
     "commitizen": {
-      "path": "./node_modules/@devndeploy/cz-conventional-changelog"
+      "path": "./node_modules/@ryansonshine/cz-conventional-changelog"
     }
   },
   "lint-staged": {
