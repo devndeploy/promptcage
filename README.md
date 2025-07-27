@@ -2,7 +2,6 @@
 
 [![npm package][npm-img]][npm-url]
 [![Build Status][build-img]][build-url]
-[![Downloads][downloads-img]][downloads-url]
 [![Issues][issues-img]][issues-url]
 [![Code Coverage][codecov-img]][codecov-url]
 [![Commitizen Friendly][commitizen-img]][commitizen-url]
@@ -44,8 +43,6 @@ Default: `rainbows`
 
 [build-img]:https://github.com/devndeploy/promptcage/actions/workflows/release.yml/badge.svg
 [build-url]:https://github.com/devndeploy/promptcage/actions/workflows/release.yml
-[downloads-img]:https://img.shields.io/npm/dt/promptcage
-[downloads-url]:https://www.npmtrends.com/promptcage
 [npm-img]:https://img.shields.io/npm/v/promptcage
 [npm-url]:https://www.npmjs.com/package/promptcage
 [issues-img]:https://img.shields.io/github/issues/devndeploy/promptcage
