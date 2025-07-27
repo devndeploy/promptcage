@@ -8,7 +8,7 @@
 [![Commitizen Friendly][commitizen-img]][commitizen-url]
 [![Semantic Release][semantic-release-img]][semantic-release-url]
 
-> My awesome module
+> Using this package requires an API key from [PromptCage.com](https://promptcage.com/)
 
 ## Install
 
@@ -33,8 +33,6 @@ myPackage('hello world');
 
 Type: `string`
 
-Lorem ipsum.
-
 #### options
 
 Type: `object`
@@ -43,8 +41,6 @@ Type: `object`
 
 Type: `string`
 Default: `rainbows`
-
-Lorem ipsum.
 
 [build-img]:https://github.com/devndeploy/promptcage/actions/workflows/release.yml/badge.svg
 [build-url]:https://github.com/devndeploy/promptcage/actions/workflows/release.yml
