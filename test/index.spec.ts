@@ -479,6 +479,56 @@ describe('PromptCage', () => {
 
         expect(result.leaked).toBe(false); // Only partial match, not full canary
       });
+
+      it('should handle errors during includes check gracefully', () => {
+        const canaryWord = 'test123';
+        const completion = 'Normal response text';
+
+        // Mock the includes method to throw an error
+        const originalIncludes = String.prototype.includes.bind(
+          String.prototype
+        );
+        String.prototype.includes = jest.fn().mockImplementation((): never => {
+          throw new Error('Simulated error during includes check');
+        });
+
+        try {
+          const result = promptCage.isCanaryWordLeaked(completion, canaryWord);
+
+          expect(result.leaked).toBe(false);
+          expect(result.canaryWord).toBe(canaryWord);
+          expect(result.error).toBe('Simulated error during includes check');
+        } finally {
+          // Restore the original includes method
+          String.prototype.includes = originalIncludes;
+        }
+      });
+
+      it('should handle non-Error objects in catch block', () => {
+        const canaryWord = 'test123';
+        const completion = 'Normal response text';
+
+        // Mock the includes method to throw a non-Error object
+        const originalIncludes = String.prototype.includes.bind(
+          String.prototype
+        );
+        String.prototype.includes = jest.fn().mockImplementation((): never => {
+          throw 'String error'; // Non-Error object
+        });
+
+        try {
+          const result = promptCage.isCanaryWordLeaked(completion, canaryWord);
+
+          expect(result.leaked).toBe(false);
+          expect(result.canaryWord).toBe(canaryWord);
+          expect(result.error).toBe(
+            'Unknown error occurred during canary check'
+          );
+        } finally {
+          // Restore the original includes method
+          String.prototype.includes = originalIncludes;
+        }
+      });
     });
   });
 });
