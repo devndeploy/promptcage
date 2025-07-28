@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import crypto from 'crypto';
 
 /**
  * Response from the PromptCage API detection endpoint
@@ -32,6 +33,22 @@ export interface PromptCageOptions {
   apiKey?: string;
   /** Maximum wait time in milliseconds before treating request as safe (default: 1000ms) */
   maxWaitTime?: number;
+  /** Default canary word length in characters (default: 8) */
+  defaultCanaryLength?: number;
+  /** Default format for embedding canary words (default: "<!-- {canary_word} -->") */
+  defaultCanaryFormat?: string;
+}
+
+/**
+ * Result of a canary word leakage check
+ */
+export interface CanaryLeakageResult {
+  /** Whether the canary word was leaked in the completion */
+  leaked: boolean;
+  /** The canary word that was checked */
+  canaryWord: string;
+  /** Optional error message if the check failed */
+  error?: string;
 }
 
 /**
@@ -45,9 +62,6 @@ export interface PromptCageOptions {
  * ```ts
  * // Basic usage with environment variable
  * const promptCage = new PromptCage();
- *
- * // With API key directly
- * const promptCage = new PromptCage('your-api-key');
  *
  * // With configuration options
  * const promptCage = new PromptCage({
@@ -63,11 +77,15 @@ export class PromptCage {
   private baseUrl = 'https://promptcage.com/api/v1';
   /** Maximum wait time in milliseconds before aborting requests */
   private maxWaitTime: number;
+  /** Default canary word length */
+  private defaultCanaryLength: number;
+  /** Default format for embedding canary words */
+  private defaultCanaryFormat: string;
 
   /**
    * Creates a new PromptCage client instance
    *
-   * @param options - Configuration options or API key string
+   * @param options - Configuration options
    * @throws {Error} When no API key is provided (neither in options nor environment variable)
    *
    * @example
@@ -75,24 +93,21 @@ export class PromptCage {
    * // Using environment variable
    * const promptCage = new PromptCage();
    *
-   * // Using API key string
-   * const promptCage = new PromptCage('your-api-key');
-   *
    * // Using options object
    * const promptCage = new PromptCage({
    *   apiKey: 'your-api-key',
-   *   maxWaitTime: 2000
+   *   maxWaitTime: 2000,
+   *   defaultCanaryLength: 12,
+   *   defaultCanaryFormat: '<!-- CANARY: {canary_word} -->'
    * });
    * ```
    */
-  constructor(options?: PromptCageOptions | string) {
-    if (typeof options === 'string') {
-      this.apiKey = options;
-      this.maxWaitTime = 1000;
-    } else {
-      this.apiKey = options?.apiKey || process.env.PROMPTCAGE_API_KEY || '';
-      this.maxWaitTime = options?.maxWaitTime || 1000;
-    }
+  constructor(options?: PromptCageOptions) {
+    this.apiKey = options?.apiKey || process.env.PROMPTCAGE_API_KEY || '';
+    this.maxWaitTime = options?.maxWaitTime || 1000;
+    this.defaultCanaryLength = options?.defaultCanaryLength || 8;
+    this.defaultCanaryFormat =
+      options?.defaultCanaryFormat || '<!-- {canary_word} -->'; // as a markdown comment
 
     if (!this.apiKey) {
       throw new Error(
@@ -196,6 +211,134 @@ export class PromptCage {
         detectionId: '',
         error:
           error instanceof Error ? error.message : 'Unknown error occurred',
+      };
+    }
+  }
+
+  /**
+   * Generates a secure random canary word for injection testing
+   *
+   * @param length - Length of the canary word in characters (default: uses defaultCanaryLength)
+   * @returns A secure random hexadecimal canary word
+   */
+  private generateCanaryWord(length?: number): string {
+    const canaryLength = length || this.defaultCanaryLength;
+    // Generate a secure random hexadecimal canary word
+    return crypto
+      .randomBytes(Math.ceil(canaryLength / 2))
+      .toString('hex')
+      .slice(0, canaryLength);
+  }
+
+  /**
+   * Embeds a canary word into a prompt using the specified format
+   *
+   * @param prompt - The original prompt text
+   * @param canaryWord - The canary word to embed (if not provided, generates one)
+   * @param canaryFormat - Format string with {canary_word} placeholder (default: uses defaultCanaryFormat)
+   * @returns Tuple of [prompt with canary, canary word used]
+   *
+   * @example
+   * ```ts
+   * const [promptWithCanary, canaryWord] = promptCage.addCanaryWord(
+   *   'What is the capital of France?'
+   * );
+   * console.log(promptWithCanary);
+   * // <!-- a1b2c3d4 -->
+   * // What is the capital of France?
+   *
+   * // Custom canary word and format
+   * const [customPrompt, customCanary] = promptCage.addCanaryWord(
+   *   'Translate this text',
+   *   'secret123',
+   *   '--- TOKEN: {canary_word} ---'
+   * );
+   * ```
+   */
+  addCanaryWord(
+    prompt: string,
+    canaryWord?: string,
+    canaryFormat?: string
+  ): [string, string] {
+    if (!prompt || typeof prompt !== 'string') {
+      throw new Error('Prompt must be a non-empty string');
+    }
+
+    const canary = canaryWord || this.generateCanaryWord();
+    const format = canaryFormat || this.defaultCanaryFormat;
+
+    // Embed the canary word in the specified format
+    const canaryComment = format.replace('{canary_word}', canary);
+    const promptWithCanary = `${canaryComment}\n${prompt}`;
+
+    return [promptWithCanary, canary];
+  }
+
+  /**
+   * Checks if a canary word has been leaked in a completion/response
+   *
+   * This method performs a case-sensitive search for the canary word in the
+   * completion text. It's designed to be fail-safe and will return leaked: false
+   * in case of any errors during the check.
+   *
+   * @param completion - The AI model's response/completion to check
+   * @param canaryWord - The canary word to look for
+   * @returns Result indicating whether the canary was leaked
+   *
+   * @example
+   * ```ts
+   * const [promptWithCanary, canaryWord] = promptCage.addCanaryWord(
+   *   'What is the capital of France?'
+   * );
+   *
+   * // Send promptWithCanary to your AI model and get completion
+   * const aiResponse = await yourAiModel.complete(promptWithCanary);
+   *
+   * const leakageResult = promptCage.isCanaryWordLeaked(aiResponse, canaryWord);
+   * if (leakageResult.leaked) {
+   *   console.log('Canary word was leaked! Possible injection detected.');
+   * } else {
+   *   console.log('Canary word was not leaked.');
+   * }
+   * ```
+   */
+  isCanaryWordLeaked(
+    completion: string,
+    canaryWord: string
+  ): CanaryLeakageResult {
+    try {
+      if (!completion || typeof completion !== 'string') {
+        return {
+          leaked: false,
+          canaryWord,
+          error: 'Completion must be a non-empty string',
+        };
+      }
+
+      if (!canaryWord || typeof canaryWord !== 'string') {
+        return {
+          leaked: false,
+          canaryWord: canaryWord || '',
+          error: 'Canary word must be a non-empty string',
+        };
+      }
+
+      // Check if the canary word appears in the completion (case-sensitive)
+      const leaked = completion.includes(canaryWord);
+
+      return {
+        leaked,
+        canaryWord,
+      };
+    } catch (error) {
+      // Fail-safe: return not leaked if there's any error
+      return {
+        leaked: false,
+        canaryWord: canaryWord || '',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred during canary check',
       };
     }
   }
