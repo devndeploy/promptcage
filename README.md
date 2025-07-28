@@ -71,7 +71,15 @@ The package is designed to be **fail-safe** and will never block your applicatio
 The SDK always returns `safe: true` in error cases, but you can still check for errors:
 
 ```ts
-const result = await promptCage.detectInjection('Your user input here');
+const result = await promptCage.detectInjection(
+  'Your user input here',
+  'user-123', // optional anonymous user ID
+  {
+    source: 'web-app',
+    version: '1.0',
+    sessionId: 'sess_456'
+  } // optional metadata
+);
 
 if (result.safe) {
   if (result.error) {
