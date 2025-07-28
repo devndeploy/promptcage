@@ -9,30 +9,19 @@
 
 > Using this package requires an API key from [PromptCage.com](https://promptcage.com/)
 
-## Install
+## 📦 Install
 
 ```bash
 npm install promptcage
 ```
 
-## Usage
-
-### Basic Usage
+## 🚀 Basic Usage
 
 ```ts
 import { PromptCage } from 'promptcage';
 
 // Initialize with API key from PROMPTCAGE_API_KEY environment variable
 const promptCage = new PromptCage();
-
-// Or initialize with API key directly
-const promptCage = new PromptCage('your-api-key-here');
-
-// Or initialize with options object
-const promptCage = new PromptCage({ 
-  apiKey: 'your-api-key-here',
-  maxWaitTime: 1000 // 1 second max wait time
-});
 
 // Detect prompt injection
 const result = await promptCage.detectInjection('Your user input here');
@@ -41,77 +30,43 @@ console.log(result);
 //=> { safe: true, detectionId: 'det_123456', error: undefined }
 ```
 
-### Advanced Usage with Metadata
+## 🔧 API
 
-```ts
-import { PromptCage } from 'promptcage';
+### Constructor
 
-const promptCage = new PromptCage({ 
-  apiKey: 'your-api-key',
-  maxWaitTime: 3000 // 3 seconds max wait time (custom)
-});
+The constructor accepts an optional configuration object or API key string.
 
-const result = await promptCage.detectInjection(
-  'Your user input here',
-  'user-123', // optional anonymous user ID
-  {
-    source: 'web-app',
-    version: '1.0',
-    sessionId: 'sess_456'
-  } // optional metadata
-);
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `options` | `string \| PromptCageOptions` | No | - | API key string or configuration object |
+| `options.apiKey` | `string` | No | `process.env.PROMPTCAGE_API_KEY` | Your PromptCage API key |
+| `options.maxWaitTime` | `number` | No | `1000` | Maximum wait time in milliseconds before treating request as safe |
 
-if (result.safe) {
-  console.log('Prompt is safe to use');
-} else {
-  console.log('Potential prompt injection detected!');
-  console.log('Detection ID:', result.detectionId);
-  if (result.error) {
-    console.log('Error:', result.error);
-  }
-}
-```
-
-## Environment Variables
-
-Set your API key as an environment variable:
-
-```bash
-export PROMPTCAGE_API_KEY=your-api-key-here
-```
-
-## API
-
-### PromptCage
-
-The main class for interacting with the PromptCage API.
-
-#### constructor(options?)
-
-- `options` (optional): Configuration object or API key string
-  - `apiKey` (optional): Your PromptCage API key. If not provided, will use `PROMPTCAGE_API_KEY` environment variable
-  - `maxWaitTime` (optional): Maximum wait time in milliseconds before treating request as safe (default: 1000ms)
-
-#### detectInjection(prompt, userAnonId?, metadata?)
+### detectInjection()
 
 Detects potential prompt injection in the given text.
 
-- `prompt` (required): The text to analyze for prompt injection
-- `userAnonId` (optional): Anonymous user identifier for tracking
-- `metadata` (optional): Additional metadata object
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `prompt` | `string` | Yes | The text to analyze for prompt injection |
+| `userAnonId` | `string` | No | Anonymous user identifier for tracking |
+| `metadata` | `object` | No | Additional metadata object |
 
-Returns a `Promise<DetectionResponse>` with:
-- `safe`: Boolean indicating if the prompt is safe
-- `detectionId`: Unique identifier for this detection
-- `error`: Error message if something went wrong (optional)
+**Returns:** `Promise<DetectionResponse>`
 
-### Fail-Safe Behavior
+| Property | Type | Description |
+|----------|------|-------------|
+| `safe` | `boolean` | Boolean indicating if the prompt is safe |
+| `detectionId` | `string` | Unique identifier for this detection |
+| `error` | `string \| undefined` | Error message if something went wrong (optional) |
+
+## 🛡️ Fail-Safe Behavior
 
 The package is designed to be **fail-safe** and will never block your application. The SDK **fails open** in all error scenarios (Network errors, Rate limit exceeded, Quota exceeded ...).
 
 **Important**: In all error cases, `safe` will be `true` and `error` will contain the error message. This ensures your application continues to work even when the PromptCage API is down, slow, or experiencing issues.
 
-### Error Handling
+## ⚠️ Error Handling
 
 The SDK always returns `safe: true` in error cases, but you can still check for errors:
 
@@ -134,7 +89,7 @@ if (result.safe) {
 }
 ```
 
-### Performance Considerations
+## ⚡ Performance Considerations
 
 The `maxWaitTime` option helps prevent performance impact on your application:
 
